@@ -1,0 +1,37 @@
+{
+  "name": "prompter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Visibility Platform - Help brands get discovered by AI assistants",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/prompter.git"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/**\" --filter \"./packages/**\" dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "clean": "turbo clean && rm -rf node_modules",
+    "db:migrate": "cd apps/api && python -m alembic upgrade head",
+    "db:seed": "python scripts/seed.py",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prettier": "^3.2.4",
+    "turbo": "^1.12.0",
+    "typescript": "^5.3.3"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
+

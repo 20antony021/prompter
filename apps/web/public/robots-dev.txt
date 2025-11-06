@@ -1,0 +1,6 @@
+# robots.txt - Development/Staging configuration
+# Blocks all crawlers on non-production environments
+
+User-agent: *
+Disallow: /
+

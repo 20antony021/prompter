@@ -1,0 +1,16 @@
+# robots.txt - Production configuration
+# For non-production, this file should be replaced with a restrictive version
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /dashboard/
+Disallow: /brands/
+Disallow: /scans/
+Disallow: /analytics/
+Disallow: /settings/
+
+Sitemap: https://prompter.site/sitemap.xml
+
