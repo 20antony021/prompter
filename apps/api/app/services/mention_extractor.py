@@ -189,18 +189,18 @@ class MentionExtractor:
         return urls[:5]  # Limit to 5 URLs
 
 
-def calculate_visibility_score(
+def calculate_visibility_score_with_breakdown(
     brand_mention_count: int,
     competitor_mention_counts: List[int],
     brand_positions: List[int],
     brand_sentiments: List[float],
-) -> float:
+) -> Dict[str, float]:
     """
-    Calculate visibility score for a brand.
+    Calculate visibility score for a brand with sub-score breakdown.
     
     Formula Version: 1.0.0
     Components:
-    - Base Score (40 pts): Ratio of brand mentions to total mentions
+    - Mentions Score (40 pts): Ratio of brand mentions to total mentions
     - Position Score (30 pts): Earlier position in responses = higher score
     - Sentiment Score (30 pts): Average sentiment of brand mentions
     
@@ -213,15 +213,26 @@ def calculate_visibility_score(
         brand_sentiments: List of sentiment scores for brand mentions
 
     Returns:
-        Visibility score (0-100)
+        Dictionary with overall score and sub-scores:
+        {
+            "score": 68.5,
+            "mentions_score": 32.0,
+            "position_score": 18.5,
+            "sentiment_score": 18.0
+        }
     """
-    # Base score from mention count (up to 40 points)
+    # Mentions score from mention count (up to 40 points)
     total_mentions = brand_mention_count + sum(competitor_mention_counts)
     if total_mentions == 0:
-        return 0.0
+        return {
+            "score": 0.0,
+            "mentions_score": 0.0,
+            "position_score": 0.0,
+            "sentiment_score": 0.0
+        }
 
     mention_ratio = brand_mention_count / total_mentions
-    base_score = mention_ratio * 40  # Up to 40 points
+    mentions_score = mention_ratio * 40  # Up to 40 points
 
     # Position score (earlier mentions score higher, up to 30 points)
     position_score = 0.0
@@ -240,7 +251,47 @@ def calculate_visibility_score(
         sentiment_score = (avg_sentiment + 1) * 15  # 0 to 30 points
 
     # Total score
-    total_score = base_score + position_score + sentiment_score
+    total_score = mentions_score + position_score + sentiment_score
 
-    return min(100.0, max(0.0, total_score))
+    return {
+        "score": min(100.0, max(0.0, total_score)),
+        "mentions_score": round(mentions_score, 2),
+        "position_score": round(position_score, 2),
+        "sentiment_score": round(sentiment_score, 2)
+    }
+
+
+def calculate_visibility_score(
+    brand_mention_count: int,
+    competitor_mention_counts: List[int],
+    brand_positions: List[int],
+    brand_sentiments: List[float],
+) -> float:
+    """
+    Calculate visibility score for a brand.
+    
+    Formula Version: 1.0.0
+    Components:
+    - Mentions Score (40 pts): Ratio of brand mentions to total mentions
+    - Position Score (30 pts): Earlier position in responses = higher score
+    - Sentiment Score (30 pts): Average sentiment of brand mentions
+    
+    Total: 0-100 points
+
+    Args:
+        brand_mention_count: Number of brand mentions
+        competitor_mention_counts: List of mention counts for each competitor
+        brand_positions: List of position indices for brand mentions
+        brand_sentiments: List of sentiment scores for brand mentions
+
+    Returns:
+        Visibility score (0-100)
+    """
+    result = calculate_visibility_score_with_breakdown(
+        brand_mention_count,
+        competitor_mention_counts,
+        brand_positions,
+        brand_sentiments
+    )
+    return result["score"]
 

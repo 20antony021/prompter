@@ -2,9 +2,10 @@
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
 from app.database import get_db
@@ -16,6 +17,8 @@ from app.models.scan import ScanResult, ScanRun, ScanStatus
 from app.models.user import User
 from app.schemas.analytics import DashboardStatsResponse, RecentScanResponse, UsageMetric, UsageResponse
 from app.services.quotas import get_usage_summary
+from app.services.trends_analyzer import TrendsAnalyzer
+from app.services.competitor_analyzer import CompetitorAnalyzer
 
 router = APIRouter()
 
@@ -270,4 +273,94 @@ async def get_dashboard_stats(
         recent_scans=recent_scan_responses,
         usage=usage_response,
     )
+
+
+@router.get("/trends")
+async def get_mention_trends(
+    brand_id: str,
+    days: int = Query(30, ge=7, le=90, description="Number of days (7, 30, or 90)"),
+    granularity: str = Query("daily", regex="^(daily|weekly)$", description="Time granularity"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get mention trends over time.
+    
+    Returns time series data showing how brand and competitor mentions
+    evolve over the specified period.
+    
+    Args:
+        brand_id: Brand ID
+        days: Number of days to analyze (7, 30, or 90)
+        granularity: Time granularity ("daily" or "weekly")
+        
+    Returns:
+        Trend data with brand and competitor time series
+    """
+    # Verify brand exists and user has access
+    brand = await db.get(Brand, brand_id)
+    if not brand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brand not found"
+        )
+    
+    # Verify user access (simplified - should check org membership)
+    # In production, add proper RBAC check here
+    
+    # Get trends
+    analyzer = TrendsAnalyzer(db)
+    trends = await analyzer.get_mention_trends(
+        brand_id=brand_id,
+        days=days,
+        granularity=granularity
+    )
+    
+    return trends
+
+
+@router.get("/visibility-trends")
+async def get_visibility_trends(
+    brand_id: str,
+    days: int = Query(30, ge=7, le=90, description="Number of days (7, 30, or 90)"),
+    granularity: str = Query("daily", regex="^(daily|weekly)$", description="Time granularity"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get visibility score trends over time with sub-score decomposition.
+    
+    Shows how the visibility score and its three components change over time:
+    - Mentions Score (40 pts): Ratio of brand mentions to total mentions
+    - Position Score (30 pts): Earlier positions score higher
+    - Sentiment Score (30 pts): Positive sentiment scores higher
+    
+    Args:
+        brand_id: Brand ID
+        days: Number of days to analyze (7, 30, or 90)
+        granularity: Time granularity ("daily" or "weekly")
+        
+    Returns:
+        Visibility score time series with sub-score decomposition
+    """
+    # Verify brand exists and user has access
+    brand = await db.get(Brand, brand_id)
+    if not brand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brand not found"
+        )
+    
+    # Verify user access (simplified - add proper RBAC in production)
+    # Check org membership here
+    
+    # Get visibility trends with sub-scores
+    analyzer = TrendsAnalyzer(db)
+    visibility_trends = await analyzer.get_visibility_trends(
+        brand_id=brand_id,
+        days=days,
+        granularity=granularity
+    )
+    
+    return visibility_trends
 

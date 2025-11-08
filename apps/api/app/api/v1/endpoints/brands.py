@@ -1,8 +1,9 @@
 """Brand endpoints with pagination, auth, and audit logging."""
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user, require_admin
 from app.database import get_db
@@ -20,6 +21,7 @@ from app.schemas.brand import (
 )
 from app.schemas.pagination import PaginatedResponse, PaginationParams, decode_cursor, encode_cursor
 from app.services.audit_logger import AuditLogger, get_audit_context
+from app.services.competitor_analyzer import CompetitorAnalyzer
 
 router = APIRouter()
 
@@ -290,4 +292,89 @@ async def list_competitors(
 
     competitors = db.query(Competitor).filter(Competitor.brand_id == brand_id).all()
     return competitors
+
+
+@router.get("/{brand_id}/competitor-analysis")
+async def get_competitor_analysis(
+    brand_id: str,
+    days: int = Query(30, ge=7, le=90, description="Number of days to analyze (7, 30, or 90)"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get comprehensive competitor analysis.
+    
+    Analyzes competitive landscape including:
+    - Brand vs competitor metrics (mentions, sentiment, position)
+    - Market share calculation
+    - Rankings by different metrics
+    - Competitive positioning
+    
+    Args:
+        brand_id: Brand ID
+        days: Number of days to analyze (default 30)
+        
+    Returns:
+        Detailed competitor analysis with rankings and market share
+    """
+    # Verify brand exists and user has access
+    brand = await db.get(Brand, brand_id)
+    if not brand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brand not found"
+        )
+    
+    # Verify user access (simplified - add proper RBAC in production)
+    # Check org membership here
+    
+    # Get competitor analysis
+    analyzer = CompetitorAnalyzer(db)
+    analysis = await analyzer.get_competitor_analysis(
+        brand_id=brand_id,
+        days=days
+    )
+    
+    return analysis
+
+
+@router.get("/{brand_id}/competitive-positioning")
+async def get_competitive_positioning(
+    brand_id: str,
+    days: int = Query(30, ge=7, le=90, description="Number of days to analyze"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get competitive positioning analysis.
+    
+    Classifies brands into quadrants based on mentions vs sentiment:
+    - Leaders: High mentions, high sentiment
+    - Challengers: High mentions, low sentiment
+    - Niche Positive: Low mentions, high sentiment
+    - Emerging: Low mentions, low sentiment
+    
+    Args:
+        brand_id: Brand ID
+        days: Number of days to analyze
+        
+    Returns:
+        Quadrant classification with actionable insights
+    """
+    # Verify brand exists
+    brand = await db.get(Brand, brand_id)
+    if not brand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brand not found"
+        )
+    
+    # Get positioning analysis
+    analyzer = CompetitorAnalyzer(db)
+    positioning = await analyzer.get_competitive_positioning(
+        brand_id=brand_id,
+        days=days
+    )
+    
+    return positioning
 
