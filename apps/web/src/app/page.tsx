@@ -2,7 +2,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, BarChart3, Globe, Zap } from 'lucide-react';
 import Link from 'next/link';
 
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+
 export default function HomePage() {
+  const { userId } = auth();
+  if (userId) {
+    redirect('/dashboard');
+  }
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -10,10 +17,10 @@ export default function HomePage() {
         <div className="container flex h-16 items-center justify-between">
           <div className="font-bold text-xl">Prompter</div>
           <div className="flex gap-4">
-            <Link href="/dashboard">
+            <Link href="/sign-in">
               <Button variant="ghost">Sign In</Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/sign-up">
               <Button>Get Started</Button>
             </Link>
           </div>
@@ -35,7 +42,7 @@ export default function HomePage() {
           AI-optimized pages. Measure before/after impact.
         </p>
         <div className="flex gap-4">
-          <Link href="/dashboard">
+          <Link href="/sign-up">
             <Button size="lg">
               Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

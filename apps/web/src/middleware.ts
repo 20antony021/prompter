@@ -1,37 +1,43 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { authMiddleware } from '@clerk/nextjs';
 
-export function middleware(request: NextRequest) {
-  const response = NextResponse.next();
-  
-  // Add noindex header for non-production environments
-  const isProduction = process.env.NEXT_PUBLIC_ENV === 'production';
-  const hostname = request.headers.get('host') || '';
-  
-  // Add noindex if not production or if on a preview/staging domain
-  if (!isProduction || hostname.includes('localhost') || hostname.includes('.vercel.app')) {
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-  }
-  
-  // Add security headers
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  return response;
-}
+export default authMiddleware({
+  publicRoutes: [
+    '/',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
+    '/pricing(.*)',
+    '/legal(.*)'
+  ],
+  afterAuth(auth, req) {
+    const { userId } = auth;
+    const url = req.nextUrl;
+    // Redirect signed-in users away from auth/public entry pages
+    if (userId) {
+      const path = url.pathname;
+      if (path === '/' || path.startsWith('/sign-in') || path.startsWith('/sign-up')) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+    }
 
-// Apply middleware to all routes except static assets and API routes
+    // Continue and add headers; rely on Clerk's default redirect for private routes
+    const res = NextResponse.next();
+    const isProduction = process.env.NEXT_PUBLIC_ENV === 'production';
+    const hostname = req.headers.get('host') || '';
+    if (!isProduction || hostname.includes('localhost') || hostname.includes('.vercel.app')) {
+      res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    }
+    res.headers.set('X-Frame-Options', 'DENY');
+    res.headers.set('X-Content-Type-Options', 'nosniff');
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    return res;
+  },
+});
+
+// Apply middleware to all routes except static assets, public files, and API routes
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, robots.txt, etc.)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
   ],
 };
 

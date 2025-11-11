@@ -4,8 +4,11 @@ import { Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PLANS } from '@/lib/plans';
+import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 
 export default function PricingPage() {
+  const { isSignedIn } = useAuth();
   const planFeatures = {
     starter: [
       '1 brand',
@@ -70,8 +73,8 @@ export default function PricingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" variant="outline">
-                Get Started
+              <Button className="w-full" variant="outline" asChild>
+                <Link href={isSignedIn ? '/dashboard' : '/sign-up'}>Get Started</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -100,8 +103,8 @@ export default function PricingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">
-                Get Started
+              <Button className="w-full" asChild>
+                <Link href={isSignedIn ? '/dashboard' : '/sign-up'}>Get Started</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -127,8 +130,8 @@ export default function PricingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" variant="outline">
-                Get Started
+              <Button className="w-full" variant="outline" asChild>
+                <Link href={isSignedIn ? '/dashboard' : '/sign-up'}>Get Started</Link>
               </Button>
             </CardFooter>
           </Card>
