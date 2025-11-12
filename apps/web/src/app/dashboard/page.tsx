@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, BarChart3, Globe, TrendingUp, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DashboardLayout } from '@/components/dashboard-layout';
 import { analyticsApi } from '@/lib/api';
 import { UsageData, calculatePercentage, formatUsage, isAtLimit, isApproachingLimit } from '@/lib/plans';
 
@@ -52,31 +51,27 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading dashboard...</div>
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading dashboard...</div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col gap-6">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">
-              Welcome back! Here's your AI visibility overview.
-            </p>
-          </div>
-          <Card className="border-destructive">
-            <CardContent className="pt-6">
-              <p className="text-destructive">{error}</p>
-            </CardContent>
-          </Card>
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back! Here's your AI visibility overview.
+          </p>
         </div>
-      </DashboardLayout>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <p className="text-destructive">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -85,7 +80,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -312,7 +307,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

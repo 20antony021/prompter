@@ -1,33 +1,16 @@
-"""Alembic environment configuration."""
-import os
 from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config, pool
-
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
 from alembic import context
+import sys
+import os
 
-# Import the base and all models
-from app.database import Base
-from app.models import (
-    ApiKey,
-    AuditLog,
-    Brand,
-    Competitor,
-    HostedDomain,
-    HostedSiteBinding,
-    KnowledgePage,
-    Mention,
-    Org,
-    OrgMember,
-    Plan,
-    PromptSet,
-    PromptSetItem,
-    PromptTemplate,
-    ScanResult,
-    ScanRun,
-    UsageMeter,
-    User,
-)
+# Add the parent directory to the path
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from app.db.session import Base
+from app.core.config import settings
+from app.models import *  # Import all models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -38,6 +21,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Set sqlalchemy.url from settings
+config.set_main_option('sqlalchemy.url', settings.DATABASE_URL)
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata = Base.metadata
@@ -46,11 +32,6 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-
-
-def get_url() -> str:
-    """Get database URL from environment."""
-    return os.getenv("DATABASE_URL", "postgresql://prompter:password@localhost:5432/prompter")
 
 
 def run_migrations_offline() -> None:
@@ -65,7 +46,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = get_url()
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -84,16 +65,16 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(
-        configuration,
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
 
         with context.begin_transaction():
             context.run_migrations()
@@ -103,4 +84,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_V2_BASE = process.env.NEXT_PUBLIC_API_URL || `${API_BASE_URL}/api/v2`;
 
 // Standard API error structure
 export interface ApiError {
@@ -33,6 +34,14 @@ export const api = axios.create({
   },
 });
 
+// Separate axios instance for our api_v2 endpoints used by the Topics page
+export const apiV2 = axios.create({
+  baseURL: API_V2_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Add auth interceptor
 api.interceptors.request.use(async (config) => {
   // Get token from Clerk (skip for now if Clerk not configured)
@@ -50,6 +59,22 @@ api.interceptors.request.use(async (config) => {
     }
   }
   
+  return config;
+});
+
+// Mirror the same auth interceptor for v2
+apiV2.interceptors.request.use(async (config) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const { getToken } = await import('@clerk/nextjs');
+      const token = await getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.log('Auth not configured, continuing without token');
+    }
+  }
   return config;
 });
 
@@ -101,6 +126,32 @@ api.interceptors.response.use(
   }
 );
 
+// Reuse the same error handling for v2
+apiV2.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<ApiError>) => {
+    if (error.response?.data?.error) {
+      const apiError = error.response.data.error;
+      const friendlyMessage = ERROR_MESSAGES[apiError.code] || apiError.message;
+      return Promise.reject({
+        code: apiError.code,
+        message: friendlyMessage,
+        originalMessage: apiError.message,
+        details: apiError.details,
+        field: apiError.field,
+        status: error.response.status,
+      });
+    }
+    if (error.message === 'Network Error') {
+      return Promise.reject({ code: 'NETWORK_ERROR', message: 'Unable to connect to the server. Please check your internet connection.', status: 0 });
+    }
+    if ((error as any).code === 'ECONNABORTED') {
+      return Promise.reject({ code: 'TIMEOUT', message: 'Request timed out. Please try again.', status: 0 });
+    }
+    return Promise.reject({ code: 'UNKNOWN_ERROR', message: 'An unexpected error occurred.', status: error.response?.status || 0 });
+  }
+);
+
 // API functions
 export const brandsApi = {
   list: (orgId: number) => api.get(`/brands?org_id=${orgId}`),
@@ -131,3 +182,11 @@ export const analyticsApi = {
   getDashboardStats: (brandId: number) => api.get(`/analytics/dashboard?brand_id=${brandId}`),
 };
 
+// Topics (api_v2)
+export const topicsApi = {
+  // Optionally pass a token to avoid relying solely on interceptors
+  getSuggestions: (q?: string, token?: string) =>
+    apiV2.get(`/topics/suggestions${q ? `?q=${encodeURIComponent(q)}` : ''}` , {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }),
+};

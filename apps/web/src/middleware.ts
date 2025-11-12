@@ -16,7 +16,11 @@ export default authMiddleware({
     if (userId) {
       const path = url.pathname;
       if (path === '/' || path.startsWith('/sign-in') || path.startsWith('/sign-up')) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+        return NextResponse.redirect(new URL('/dashboard/topics', req.url));
+      }
+      // Redirect /dashboard to /dashboard/topics
+      if (path === '/dashboard') {
+        return NextResponse.redirect(new URL('/dashboard/topics', req.url));
       }
     }
 

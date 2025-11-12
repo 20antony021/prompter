@@ -6,7 +6,8 @@ import {
   BarChart3, 
   FileText, 
   Globe, 
-  Home, 
+  Home,
+  Lightbulb, 
   Settings, 
   Target,
   User
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Topics', href: '/dashboard/topics', icon: Lightbulb },
   { name: 'Brands', href: '/brands', icon: Target },
   { name: 'Scans', href: '/scans', icon: BarChart3 },
   { name: 'Pages', href: '/pages', icon: Globe },
@@ -38,7 +40,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <nav className="flex-1 space-y-1 px-3 py-4">
             {navigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.name}
